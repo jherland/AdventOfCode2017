@@ -35,11 +35,13 @@ def adjacent(x, y):
 
 
 # part 1
-print(steps(*coord(361527)))
+with open('3.input') as f:
+    input_value = int(f.read().strip())
+print(steps(*coord(input_value)))
 
 # part 2
 n, vals = 1, {(0, 0): 1}
-while vals[coord(n)] < 361527:
+while vals[coord(n)] < input_value:
     n += 1
     vals[coord(n)] = sum(vals.get(c, 0) for c in adjacent(*coord(n)))
 
