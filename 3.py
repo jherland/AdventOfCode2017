@@ -29,41 +29,29 @@ def coord(n):
         3: (pos - r, -r),
     }[edge]
 
-def test_coord(expect, n):
-    assert expect == coord(n), '{} => {}'.format(n, coord(n))
-
-test_coord((0, 0), 1)
-test_coord((1, 0), 2)
-test_coord((1, 1), 3)
-test_coord((0, 1), 4)
-test_coord((-1, 1), 5)
-test_coord((-1, 0), 6)
-test_coord((-1, -1), 7)
-test_coord((0, -1), 8)
-test_coord((1, -1), 9)
-test_coord((2, -1), 10)
-test_coord((2, 1), 12)
-test_coord((-15, 16), 1024)
 
 def steps(coord):
     x, y = coord
     return abs(x) + abs(y)
 
-def test_steps(expect, n):
-    assert expect == steps(coord(n)), '{} => {}'.format(n, steps(coord(n)))
 
-test_steps(0, 1)
-test_steps(1, 2)
-test_steps(2, 3)
-test_steps(1, 4)
-test_steps(2, 5)
-test_steps(1, 6)
-test_steps(2, 7)
-test_steps(1, 8)
-test_steps(2, 9)
-test_steps(3, 10)
-test_steps(2, 11)
-test_steps(3, 12)
-test_steps(31, 1024)
+def adjacent(coord):
+    '''Generate coords adjacent to the given coord.'''
+    x, y = coord
+    for dx in [-1, 0, 1]:
+        for dy in [-1, 0, 1]:
+            yield x + dx, y + dy
 
+
+# part 1
 print(steps(coord(361527)))
+
+# part 2
+n = 1
+vals = {(0, 0): 1}
+while vals[coord(n)] < 361527:
+    n += 1
+    assert coord(n) not in vals
+    vals[coord(n)] = sum(vals.get(c, 0) for c in adjacent(coord(n)))
+
+print(vals[coord(n)])
