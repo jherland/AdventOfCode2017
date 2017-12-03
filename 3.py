@@ -16,7 +16,6 @@ the_spiral = spiral()
 
 def coord(n):
     '''Return coordinate for spiral position n.'''
-    assert isinstance(n, int) and n >= 1
     while len(cached) <= n:
         cached.append(next(the_spiral))
     return cached[n]
