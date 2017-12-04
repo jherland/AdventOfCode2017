@@ -1,4 +1,4 @@
-with open('1.input') as f:
+with open('01.input') as f:
     iv = f.read().strip()
 
 # part 1

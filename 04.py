@@ -1,5 +1,5 @@
 def phrases():
-    with open('4.input') as f:
+    with open('04.input') as f:
         for line in f:
             yield line.split()
 

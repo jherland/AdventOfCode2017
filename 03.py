@@ -34,7 +34,7 @@ def adjacent(x, y):
 
 
 # part 1
-with open('3.input') as f:
+with open('03.input') as f:
     input_value = int(f.read().strip())
 print(steps(*coord(input_value)))
 

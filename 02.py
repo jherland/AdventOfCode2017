@@ -22,9 +22,9 @@ def rowdivisor(rows):
 
 
 # part 1
-with open("2.input") as f:
+with open("02.input") as f:
     print(sum(rowdiff(rows(f))))
 
 # part 2
-with open("2.input") as f:
+with open("02.input") as f:
     print(sum(rowdivisor(rows(f))))
