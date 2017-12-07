@@ -1,16 +1,11 @@
-import itertools
-
-
 def parse_file():
     with open('07.input') as f:
         for line in f:
             name, weight, *children = line.split()
             assert weight.startswith('(') and weight.endswith(')')
             weight = int(weight[1:-1])
-            if children:
-                assert children.pop(0) == '->'
-            children = [c.rstrip(',') for c in children]
-            yield name, weight, children
+            assert children == [] or children[0] == '->'
+            yield name, weight, [c.rstrip(',') for c in children[1:]]
 
 
 # part 1
@@ -29,6 +24,7 @@ root = name  # any name
 while root in parents:
     root = parents[root]
 print(root)
+
 
 # part 2
 def fullweight(name):
@@ -80,7 +76,7 @@ def find_imbalance(name):
                 assert other_fweight == fw
         print('Should be {}, but is {}'.format(other_fweight, odd_fweight))
         diff = other_fweight - odd_fweight
-        print('Adjust {} from {} to {}'.format(e.name, e.weight, e.weight + diff))
+        print('Adjust {}: {} -> {}'.format(e.name, e.weight, e.weight + diff))
 
 
 find_imbalance(root)
