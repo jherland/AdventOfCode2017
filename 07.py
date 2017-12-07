@@ -1,82 +1,96 @@
-def parse_file():
-    with open('07.input') as f:
-        for line in f:
-            name, weight, *children = line.split()
-            assert weight.startswith('(') and weight.endswith(')')
-            weight = int(weight[1:-1])
-            assert children == [] or children[0] == '->'
-            yield name, weight, [c.rstrip(',') for c in children[1:]]
+from typing import Dict, Iterable, Set, Tuple
 
 
-# part 1
-weights = {}
-children = {}
-parents = {}
-for name, weight, childs in parse_file():
-    weights[name] = weight
-    children[name] = set(childs)
-    for c in childs:
-        assert c not in parents
-        parents[c] = name
+class Node:
+    @classmethod
+    def parse(cls, line: str):
+        '''Parse lines like this: "padx (45) -> pbga, havc, qoyq".'''
+        name, weight, *rest = line.split()
+        assert weight.startswith('(') and weight.endswith(')')
+        assert rest == [] or rest[0] == '->'
+        return cls(name, int(weight[1:-1]), {c.rstrip(',') for c in rest[1:]})
 
-# find root
-root = name  # any name
-while root in parents:
-    root = parents[root]
-print(root)
-
-
-# part 2
-def fullweight(name):
-    return weights[name] + sum(fullweight(c) for c in children[name])
-
-
-def odd_one_out(items, key):
-    counts = {}
-    for item in items:
-        counts.setdefault(key(item), []).append(item)
-    assert len(counts) == 2, len(counts)
-    _, a = counts.popitem()
-    _, b = counts.popitem()
-    if len(a) == 1:
-        return a[0]
-    else:
-        assert len(b) == 1
-        return b[0]
-
-
-class ChildError(Exception):
-    def __init__(self, name, weight):
+    def __init__(self, name: str, weight: int, children: Set[str]) -> None:
         self.name = name
         self.weight = weight
+        self.children = children
+
+    def __contains__(self, other):
+        return other.name in self.children
 
 
-def find_imbalance(name):
-    if name not in children:
-        return
-    cw = [(c, fullweight(c)) for c in children[name]]
-    print(cw)
-    try:
-        odd = odd_one_out(cw, key=lambda item: item[1])
-    except AssertionError:
-        print('No more imbalance under here, must be {} itself?'.format(name))
-        raise ChildError(name, weights[name])
-    print(odd)
-    try:
-        find_imbalance(odd[0])
-    except ChildError as e:
-        print('Found imbalance in child: {}, {}'.format(e.name, e.weight))
-        odd_fweight, other_fweight = 0, 0
-        for c, fw, in cw:
-            if c == e.name:
-                odd_fweight = fw
-            elif other_fweight == 0:
-                other_fweight = fw
-            else:
-                assert other_fweight == fw
-        print('Should be {}, but is {}'.format(other_fweight, odd_fweight))
-        diff = other_fweight - odd_fweight
-        print('Adjust {}: {} -> {}'.format(e.name, e.weight, e.weight + diff))
+class Tree:
+    @classmethod
+    def parse(cls, f: Iterable[str]):
+        def nodes():
+            for line in f:
+                yield Node.parse(line)
+        return cls(nodes())
+
+    def __init__(self, nodes: Iterable[Node]) -> None:
+        self.nodes = {n.name: n for n in nodes}
+        self.parents = {}
+        for n in self.nodes.values():
+            for c in n.children:
+                self.parents[c] = n.name
+
+    def root(self, node: str) -> str:
+        '''Walk parents from given node up to its root.'''
+        while node in self.parents:
+            node = self.parents[node]
+        return node
+
+    def full_weight(self, node: str) -> int:
+        '''Return weight of the given node and its children.'''
+        n = self.nodes[node]
+        return n.weight + sum(self.full_weight(c) for c in n.children)
+
+    def find_odd_child(self, node: str) -> Tuple[str, int]:
+        '''Find the one child whose full_weight differs from the other.
+
+        Return the name of the child, and the adjustment needed to bring it
+        into agreement with the other children.
+        Return None if this node has no children, or no adjustment is needed.
+        '''
+        n = self.nodes[node]
+        if not n.children:
+            return None
+        by_weight = sorted((self.full_weight(c), c) for c in n.children)
+        assert len(by_weight) >= 3
+        # first or last item is not like the others
+        common = by_weight[1][0]
+        assert all(w == common for w, _ in by_weight[2:-1])
+        first, last = by_weight[0], by_weight[-1]
+        if first[0] != common:
+            assert last[0] == common
+            return first[1], common - first[0]
+        elif last[0] != common:
+            return last[1], common - last[0]
+        else:
+            return None
+
+    def find_imbalance(self, node: str) -> Tuple[str, int]:
+        '''Descend from 'node' until the one odd node has been found.
+
+        Return that node's name, and the weight adjustment that must be made
+        to balance the tree rooted at 'node'. Return None if no imbalance is
+        found in this tree.
+        '''
+        imbalance = self.find_odd_child(node)
+        # print(node, imbalance)
+        if imbalance is None: # No imbalance in this part of the tree
+            return None
+        ret = self.find_imbalance(imbalance[0])  # Look further for imbalance
+        return imbalance if ret is None else ret
 
 
-find_imbalance(root)
+with open('07.input') as f:
+    tree = Tree.parse(f)
+
+# part 1
+root = tree.root(next(iter(tree.nodes.keys())))  # follow any node to the root
+print(root)
+
+# part 2
+odd_node, adjustment = tree.find_imbalance(root)
+print(tree.nodes[odd_node].weight + adjustment)
