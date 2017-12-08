@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, Set, Tuple
+from typing import Iterable, Set, Tuple
 
 
 class Node:
@@ -78,7 +78,7 @@ class Tree:
         '''
         imbalance = self.find_odd_child(node)
         # print(node, imbalance)
-        if imbalance is None: # No imbalance in this part of the tree
+        if imbalance is None:  # No imbalance in this part of the tree
             return None
         ret = self.find_imbalance(imbalance[0])  # Look further for imbalance
         return imbalance if ret is None else ret
