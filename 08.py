@@ -16,8 +16,10 @@ compare = {
     '>': lambda a, b: a > b,
 }
 
+any_max = 0
 
-def execute(program, observer=None):
+
+def execute(program):
     for line in program:
         reg, inc, val, if_, cmp_reg, cmp_op, cmp_val = line.split()
         assert if_ == 'if'
@@ -29,23 +31,15 @@ def execute(program, observer=None):
         if compare[cmp_op](registers[cmp_reg], cmp_val):
             registers[reg] = incdec[inc](registers[reg], val)
 
-        observer()
+        global any_max
+        any_max = max(any_max, max(registers.values()))
 
 
-class Observer:
-    def __init__(self):
-        self.max = 0
-
-    def __call__(self):
-        self.max = max(self.max, max(registers.values()))
-
-
-observer = Observer()
 with open('08.input') as f:
-    execute(f, observer)
+    execute(f)
 
 # part 1
 print(max(registers.values()))
 
 # part 2
-print(observer.max)
+print(any_max)
