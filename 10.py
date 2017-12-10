@@ -1,44 +1,48 @@
-from collections import namedtuple
+class KnotHash:
+    Size = 256
+    Density = 16
+    assert Size % Density == 0
 
-SIZE = 256
-State = namedtuple('State', ['l', 'pos', 'skip'])
+    def __init__(self):
+        self.list = list(range(self.Size))
+        self.pos = 0
+        self.skip = 0
 
+    def reverse_move_increase(self, length):
+        indices = [i % self.Size for i in range(self.pos, self.pos + length)]
+        m = self.list[:]
+        for i, j in zip(indices, reversed(indices)):
+            self.list[i] = m[j]
+        self.pos = (self.pos + length + self.skip) % self.Size
+        self.skip += 1
 
-def new_state():
-    return State(list(range(SIZE)), 0, 0)
+    def update(self, lengths):
+        for length in lengths:
+            self.reverse_move_increase(length)
 
+    def densify(self):
+        ret = []
+        for i in range(0, self.Size, self.Size // self.Density):
+            v = 0
+            for j in range(self.Density):
+                v ^= self.list[i + j]
+            ret.append(v)
+        return ret
 
-def reverse_move_increase(state, length):
-    l, pos, skip = state
-    indices = [i % SIZE for i in range(pos, pos + length)]
-    m = l[:]
-    for i, j in zip(indices, reversed(indices)):
-        l[i] = m[j]
-    pos = (pos + length + skip) % SIZE
-    skip += 1
-    return State(l, pos, skip)
+    def hex(self):
+        return ''.join('{0:02x}'.format(n) for n in self.densify())
 
 
 # part 1
-state = new_state()
+h = KnotHash()
 with open('10.input') as f:
-    lengths = [int(word) for word in f.read().rstrip().split(',')]
-for length in lengths:
-    state = reverse_move_increase(state, length)
-print(state.l[0] * state.l[1])
+    h.update(int(word) for word in f.read().rstrip().split(','))
+print(h.list[0] * h.list[1])
 
 # part 2
-state = new_state()
+h = KnotHash()
 with open('10.input') as f:
     lengths = [ord(c) for c in f.read().rstrip()] + [17, 31, 73, 47, 23]
 for n in range(64):
-    for length in lengths:
-        state = reverse_move_increase(state, length)
-
-dense = []
-for i in range(0, SIZE, 16):
-    v = 0
-    for j in range(16):
-        v ^= state.l[i + j]
-    dense.append(v)
-print(''.join('{0:02x}'.format(n) for n in dense))
+    h.update(lengths)
+print(h.hex())
