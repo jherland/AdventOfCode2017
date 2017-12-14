@@ -12,17 +12,22 @@ def find_group(node, connections):
     return seen
 
 
-# part 1
-with open('12.input') as f:
-    connections = {node: conns for node, conns in parse_conns(f)}
-group = find_group(0, connections)
-print(len(group))
+def main():
+    # part 1
+    with open('12.input') as f:
+        connections = {node: conns for node, conns in parse_conns(f)}
+    group = find_group(0, connections)
+    print(len(group))
 
-# part 2
-groups = 1
-connections = {k: v for k, v in connections.items() if k not in group}
-while connections:
-    group = find_group(next(iter(connections.keys())), connections)
+    # part 2
+    groups = 1
     connections = {k: v for k, v in connections.items() if k not in group}
-    groups += 1
-print(groups)
+    while connections:
+        group = find_group(next(iter(connections.keys())), connections)
+        connections = {k: v for k, v in connections.items() if k not in group}
+        groups += 1
+    print(groups)
+
+
+if __name__ == '__main__':
+    main()
