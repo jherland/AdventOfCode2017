@@ -2,24 +2,6 @@ from knothash import KnotHash
 from connections import find_group
 
 
-def hash_inputs(word, n):
-    for i in range(n):
-        yield '{}-{}'.format(word, i)
-
-
-def hashes(inputs):
-    for inp in inputs:
-        yield KnotHash(inp).hex()
-
-
-def rows(hashes):
-    for h in hashes:
-        assert len(h) == 32
-        bits = [int(c) for d in h for c in '{:04b}'.format(int(d, 16))]
-        assert len(bits) == 128
-        yield bits
-
-
 def connected_cells(disk, N):
     padded = [[0] * (N + 1)] + [[0] + r[:N] for r in disk[:N]]
     for i in range(1, len(padded)):
@@ -34,7 +16,11 @@ def connected_cells(disk, N):
 
 with open('14.input') as f:
     key = f.read().rstrip()
-disk = [r for r in rows(hashes(hash_inputs(key, 128)))]
+hashes = [KnotHash('{}-{}'.format(key, i)).hex() for i in range(128)]
+assert all(len(h) == 32 for h in hashes)
+disk = [  # 128 rows of [1, 0, 0, 1, 0, 1, ...], each row 128 'bits' long
+    [int(c) for d in h for c in '{:04b}'.format(int(d, 16))] for h in hashes]
+assert all(len(row) == 128 for row in disk)
 
 # part 1
 print(sum(sum(row) for row in disk))
