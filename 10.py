@@ -33,16 +33,21 @@ class KnotHash:
         return ''.join('{0:02x}'.format(n) for n in self.densify())
 
 
-# part 1
-h = KnotHash()
-with open('10.input') as f:
-    h.update(int(word) for word in f.read().rstrip().split(','))
-print(h.list[0] * h.list[1])
+def main():
+    # part 1
+    h = KnotHash()
+    with open('10.input') as f:
+        h.update(int(word) for word in f.read().rstrip().split(','))
+    print(h.list[0] * h.list[1])
 
-# part 2
-h = KnotHash()
-with open('10.input') as f:
-    lengths = [ord(c) for c in f.read().rstrip()] + [17, 31, 73, 47, 23]
-for n in range(64):
-    h.update(lengths)
-print(h.hex())
+    # part 2
+    h = KnotHash()
+    with open('10.input') as f:
+        lengths = [ord(c) for c in f.read().rstrip()] + [17, 31, 73, 47, 23]
+    for n in range(64):
+        h.update(lengths)
+    print(h.hex())
+
+
+if __name__ == '__main__':
+    main()
