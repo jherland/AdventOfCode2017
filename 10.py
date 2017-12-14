@@ -3,10 +3,12 @@ class KnotHash:
     Density = 16
     assert Size % Density == 0
 
-    def __init__(self):
+    def __init__(self, data=None):
         self.list = list(range(self.Size))
         self.pos = 0
         self.skip = 0
+        if data is not None:
+            self.update(data)
 
     def reverse_move_increase(self, length):
         indices = [i % self.Size for i in range(self.pos, self.pos + length)]
@@ -16,9 +18,14 @@ class KnotHash:
         self.pos = (self.pos + length + self.skip) % self.Size
         self.skip += 1
 
-    def update(self, lengths):
+    def update_lengths(self, lengths):
         for length in lengths:
             self.reverse_move_increase(length)
+
+    def update(self, data):
+        lengths = [ord(c) for c in data] + [17, 31, 73, 47, 23]
+        for n in range(64):
+            self.update_lengths(lengths)
 
     def densify(self):
         ret = []
@@ -37,16 +44,12 @@ def main():
     # part 1
     h = KnotHash()
     with open('10.input') as f:
-        h.update(int(word) for word in f.read().rstrip().split(','))
+        h.update_lengths(int(word) for word in f.read().rstrip().split(','))
     print(h.list[0] * h.list[1])
 
     # part 2
-    h = KnotHash()
     with open('10.input') as f:
-        lengths = [ord(c) for c in f.read().rstrip()] + [17, 31, 73, 47, 23]
-    for n in range(64):
-        h.update(lengths)
-    print(h.hex())
+        print(KnotHash(f.read().rstrip()).hex())
 
 
 if __name__ == '__main__':

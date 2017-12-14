@@ -9,11 +9,7 @@ def hash_inputs(word, n):
 
 def hashes(inputs):
     for inp in inputs:
-        h = KnotHash()
-        for n in range(64):
-            h.update(ord(c) for c in inp)
-            h.update([17, 31, 73, 47, 23])
-        yield h.hex()
+        yield KnotHash(inp).hex()
 
 
 def rows(hashes):
