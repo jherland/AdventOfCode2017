@@ -2,7 +2,7 @@ def gen(start, factor, modulo, picky=1):
     while True:
         start = (start * factor) % modulo
         if start % picky == 0:
-            yield start
+            yield start & 0xffff
 
 
 with open('15.input') as f:
@@ -12,11 +12,9 @@ with open('15.input') as f:
 # part 1
 a_gen = gen(a_start, 16807, 2147483647)
 b_gen = gen(b_start, 48271, 2147483647)
-print(sum(next(a_gen) & 0xffff == next(b_gen) & 0xffff
-          for _ in range(40000000)))
+print(sum(next(a_gen) == next(b_gen) for _ in range(40000000)))
 
 # part 2
 a_gen = gen(a_start, 16807, 2147483647, picky=4)
 b_gen = gen(b_start, 48271, 2147483647, picky=8)
-print(sum(next(a_gen) & 0xffff == next(b_gen) & 0xffff
-          for _ in range(5000000)))
+print(sum(next(a_gen) == next(b_gen) for _ in range(5000000)))
