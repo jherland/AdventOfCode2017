@@ -1,21 +1,14 @@
-def spin(dancers, n):
-    for d in dancers:
-        dancers[d] = (dancers[d] + n) % 16
+def spin(s, n):
+    return s[-n:] + s[:-n]
 
 
-def exchange(dancers, pos_a, pos_b):
-    a, b = None, None
-    for d, pos in dancers.items():
-        if pos == pos_a:
-            a = d
-        elif pos == pos_b:
-            b = d
-    assert a and b
-    dancers[a], dancers[b] = dancers[b], dancers[a]
+def exchange(s, pos_a, pos_b):
+    a, b = min(pos_a, pos_b), max(pos_a, pos_b)
+    return s[:a] + s[b] + s[a + 1:b] + s[a] + s[b + 1:]
 
 
-def partner(dancers, a, b):
-    dancers[a], dancers[b] = dancers[b], dancers[a]
+def partner(s, a, b):
+    return s.replace(a, '?').replace(b, a).replace('?', b)
 
 
 def parse_moves(s):
@@ -36,27 +29,22 @@ def parse_moves(s):
 
 def dance(dancers, moves):
     for move, *args in moves:
-        move(dancers, *args)
+        dancers = move(dancers, *args)
+    return dancers
 
 
-def print_dancers(dancers):
-    for d in sorted(dancers, key=lambda d: dancers[d]):
-        print(d, end='')
-    print()
-
-
-dancers = {chr(ord('a') + n): n for n in range(16)}
+dancers = 'abcdefghijklmnop'
 with open('16.input') as f:
     moves = list(parse_moves(f.read().rstrip()))
 
 # part 1
-dance(dancers, moves)
-print_dancers(dancers)
+dancers = dance(dancers, moves)
+print(dancers)
 
 # part 2
-n, repeat = 1, dancers.copy()
+n, repeat = 1, dancers
 while n < 1000000000:
-    dance(dancers, moves)
+    dancers = dance(dancers, moves)
     if dancers == repeat:
         print('found repeat after {} dances'.format(n))
         period = n
@@ -64,4 +52,4 @@ while n < 1000000000:
             n += period
     n += 1
 assert n == 1000000000
-print_dancers(dancers)
+print(dancers)
