@@ -9,7 +9,7 @@ def parse_assembly(f):
 
 
 class Thread:
-    def __init__(self, program, pid):
+    def __init__(self, program, pid=0):
         self.program = program
         self.pid = pid
         self.outbox = []
@@ -74,13 +74,7 @@ with open('18.input') as f:
     program = list(parse_assembly(f))
 
 # part 1
-# task = run(program, 0)
-# val = None
-# try:
-#     while True:
-#         val = task.send(val)
-# except IndexError:
-#     print(val)
+print(next(Thread(program).run())[-1])
 
 # part 2
 threads = [Thread(program, n) for n in range(2)]
