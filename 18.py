@@ -8,99 +8,66 @@ def parse_assembly(f):
         yield instr, args
 
 
-def snd(regs, val):
-    try:
-        return 'snd', int(val)
-    except ValueError:
-        return 'snd', regs[val]
+class Thread:
+    def __init__(self, program, pid):
+        self.program = program
+        self.pid = pid
+        self.outbox = []
+        self.sent = 0
+        self.pc = 0
+        self.regs = defaultdict(lambda: 0)
+        self.regs['p'] = pid
 
+    def __str__(self):
+        return 'Thread {}'.format(self.pid)
 
-def set_(regs, reg, val):
-    try:
-        regs[reg] = int(val)
-    except ValueError:
-        regs[reg] = regs[val]
-
-
-def add(regs, reg, val):
-    try:
-        regs[reg] += int(val)
-    except ValueError:
-        regs[reg] += regs[val]
-
-
-def mul(regs, reg, val):
-    try:
-        regs[reg] *= int(val)
-    except ValueError:
-        regs[reg] *= regs[val]
-
-
-def mod(regs, reg, val):
-    try:
-        regs[reg] %= int(val)
-    except ValueError:
-        regs[reg] %= regs[val]
-
-
-def rcv(regs, reg):
-    assert reg in set('abcdefghijklmnopqrstuvwxyz')
-    return 'rcv', reg
-
-
-def jgz(regs, val, skip):
-    try:
-        val = int(val)
-    except ValueError:
-        val = regs[val]
-    if val > 0:
+    def _value(self, val):
         try:
-            skip = int(skip)
+            return int(val)
         except ValueError:
-            skip = regs[skip]
-        return 'jump', skip
+            return self.regs[val]
 
+    def snd(self, val):
+        self.outbox.append(self._value(val))
+        self.sent += 1
 
-def run(program, pid):
-    name = 't{}'.format(pid)
-    instructions = {
-        'snd': snd,
-        'set': set_,
-        'add': add,
-        'mul': mul,
-        'mod': mod,
-        'rcv': rcv,
-        'jgz': jgz,
-    }
-    pc = 0
-    q = []
-    regs = defaultdict(lambda: 0)
-    regs['p'] = pid
-    while True:
-        if pc < 0 or pc >= len(program):
-            raise RuntimeError('PC out of bounds: {}'.format(pc))
-        instr, args = program[pc]
-        ret = instructions[instr](regs, *args)
-        print('{}: {}({}) -> {}'.format(name, instr, ', '.join(args), ret))
-        if ret is not None:
-            instr, val = ret
-            if instr == 'snd':
-                q.append((yield val))
-            elif instr == 'rcv':
-                incoming = None
-                while incoming is None:
-                    try:
-                        incoming = q.pop(0)
-                    except IndexError:
-                        incoming = (yield None)
-                regs[val] = incoming
-                print('{}: ... received {} -> {}'.format(name, incoming, val))
-            elif instr == 'jump':
-                pc += val
-                continue
-            else:
-                raise ValueError(ret)
-        pc += 1
+    def set(self, reg, val):
+        self.regs[reg] = self._value(val)
+
+    def add(self, reg, val):
+        self.regs[reg] += self._value(val)
+
+    def mul(self, reg, val):
+        self.regs[reg] *= self._value(val)
+
+    def mod(self, reg, val):
+        self.regs[reg] %= self._value(val)
+
+    def rcv(self, reg):
+        assert reg in set('abcdefghijklmnopqrstuvwxyz')
+        return 'rcv', reg
+
+    def jgz(self, val, skip):
+        if self._value(val) > 0:
+            return 'jump', self._value(skip)
+
+    def __call__(self):
+        while True:
+            if self.pc < 0 or self.pc >= len(self.program):
+                raise RuntimeError('PC out of bounds: {}'.format(self.pc))
+            instr, args = self.program[self.pc]
+            ret = getattr(self, instr)(*args)
+            if ret is not None:
+                instr, val = ret
+                if instr == 'rcv':
+                    self.regs[val] = yield self.outbox
+                    self.outbox = []
+                elif instr == 'jump':
+                    self.pc += val
+                    continue
+                else:
+                    raise ValueError(ret)
+            self.pc += 1
 
 
 with open('18.input') as f:
@@ -115,23 +82,11 @@ with open('18.input') as f:
 # except IndexError:
 #     print(val)
 
-
 # part 2
-t0, t1 = run(program, 0), run(program, 1)
-
-v0, v1 = None, None
-progress = True
-c0, c1 = 0, 0
-retry = 3
-while progress or retry:
-    if not progress:
-        retry -= 1
-    v1, v0 = t0.send(v0), t1.send(v1)
-    print('t0 -> {}, t1 -> {}, retry = {}'.format(v1, v0, retry))
-    if v0 is not None:
-        c1 += 1
-    if v1 is not None:
-        c0 += 1
-    progress = not(v0 is None and v1 is None)
-
-print(c0, c1)
+thr0, thr1 = Thread(program, 0), Thread(program, 1)
+t0, t1 = thr0(), thr1()
+to0, to1 = [None], [None]  # Initial values to start off coroutines
+while to0 or to1:
+    to1.extend(t0.send(to0.pop(0)) if to0 else [])
+    to0.extend(t1.send(to1.pop(0)) if to1 else [])
+print(thr1.sent)
