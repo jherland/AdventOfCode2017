@@ -8,79 +8,61 @@ def parse_assembly(f):
         yield instr, args
 
 
-class Thread:
-    def __init__(self, program, pid=0):
-        self.program = program
-        self.pid = pid
-        self.outbox = []
-        self.sent = 0
-        self.pc = 0
-        self.regs = defaultdict(lambda: 0)
-        self.regs['p'] = pid
+def thread(program, pid=0):
+    outbox = []
+    sent = 0
+    pc = 0
+    regs = defaultdict(lambda: 0)
+    regs['p'] = pid
 
-    def __str__(self):
-        return 'Thread {}'.format(self.pid)
-
-    def _value(self, val):
+    def get_val(s):
         try:
-            return int(val)
+            return int(s)
         except ValueError:
-            return self.regs[val]
+            return regs[s]
 
-    def snd(self, val):
-        self.outbox.append(self._value(val))
-        self.sent += 1
+    def do_instruction(instr, args):
+        nonlocal pc, outbox, sent
+        if instr == 'snd':
+            outbox.append(get_val(args[0]))
+            sent += 1
+        elif instr == 'set':
+            regs[args[0]] = get_val(args[1])
+        elif instr == 'add':
+            regs[args[0]] += get_val(args[1])
+        elif instr == 'mul':
+            regs[args[0]] *= get_val(args[1])
+        elif instr == 'mod':
+            regs[args[0]] %= get_val(args[1])
+        elif instr == 'rcv':
+            regs[args[0]] = yield outbox
+            outbox = []
+        elif instr == 'jgz':
+            if get_val(args[0]) > 0:
+                pc += get_val(args[1])
+                return
+        pc += 1
 
-    def set(self, reg, val):
-        self.regs[reg] = self._value(val)
-
-    def add(self, reg, val):
-        self.regs[reg] += self._value(val)
-
-    def mul(self, reg, val):
-        self.regs[reg] *= self._value(val)
-
-    def mod(self, reg, val):
-        self.regs[reg] %= self._value(val)
-
-    def rcv(self, reg):
-        assert reg in set('abcdefghijklmnopqrstuvwxyz')
-        return 'rcv', reg
-
-    def jgz(self, val, skip):
-        if self._value(val) > 0:
-            return 'jump', self._value(skip)
-
-    def run(self):
-        while True:
-            if self.pc < 0 or self.pc >= len(self.program):
-                raise RuntimeError('PC out of bounds: {}'.format(self.pc))
-            instr, args = self.program[self.pc]
-            ret = getattr(self, instr)(*args)
-            if ret is not None:
-                instr, val = ret
-                if instr == 'rcv':
-                    self.regs[val] = yield self.outbox
-                    self.outbox = []
-                elif instr == 'jump':
-                    self.pc += val
-                    continue
-                else:
-                    raise ValueError(ret)
-            self.pc += 1
+    while True:
+        if pc < 0 or pc >= len(program):
+            raise RuntimeError('PC out of bounds: {}'.format(pc))
+        try:
+            yield from do_instruction(*program[pc])
+        except GeneratorExit:
+            print(sent)
+            raise
 
 
 with open('18.input') as f:
     program = list(parse_assembly(f))
 
 # part 1
-print(next(Thread(program).run())[-1])
+print(next(thread(program))[-1])
 
 # part 2
-threads = [Thread(program, n) for n in range(2)]
-coros = [thread.run() for thread in threads]
+coros = [thread(program, n) for n in range(2)]
 queues = [[None] for _ in range(len(coros))]  # Initial values to pass to coros
 while any(queues):
     for coro, q, next_q in zip(coros, queues, queues[1:] + [queues[0]]):
         next_q.extend(coro.send(q.pop(0)) if q else [])
-print(threads[-1].sent)
+coros[-1].close()
