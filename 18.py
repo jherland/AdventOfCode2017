@@ -8,6 +8,10 @@ def parse_assembly(f):
         yield instr, args
 
 
+class PrintSent(BaseException):
+    pass
+
+
 def thread(program, pid=0):
     outbox = []
     sent = 0
@@ -45,9 +49,8 @@ def thread(program, pid=0):
                     pc += get_val(args[1])
                     continue
             pc += 1
-        except GeneratorExit:
+        except PrintSent:
             print(sent)
-            raise
 
 
 with open('18.input') as f:
@@ -62,4 +65,4 @@ queues = [[None] for _ in range(len(coros))]  # Initial values to pass to coros
 while any(queues):
     for coro, q, next_q in zip(coros, queues, queues[1:] + [queues[0]]):
         next_q.extend(coro.send(q.pop(0)) if q else [])
-coros[-1].close()
+coros[1].throw(PrintSent())
