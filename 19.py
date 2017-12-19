@@ -1,7 +1,4 @@
 class Diagram:
-    SYMBOLS = set('|+-ABCDEFGHIKJLMNOPQRSTUVWXYZ')
-    REVERSE = {'u': 'd', 'd': 'u', 'l': 'r', 'r': 'l'}  # up/down/left/right
-
     @classmethod
     def build(cls, lines):
         '''Return Diagram instance and starting point.'''
@@ -12,7 +9,6 @@ class Diagram:
             for j, c in enumerate(line):
                 if c == ' ':
                     continue
-                assert c in cls.SYMBOLS, c
                 d[(i, j)] = c
                 # start at first encountered symbol, assume we arrive from top
                 if start is None:
@@ -38,10 +34,11 @@ class Diagram:
         '''Walk one step from the current to the next (dir, pos, sym).'''
         dir, pos, sym = cur
         adjs = {dir: (dir, pos, sym) for dir, pos, sym in self.adjacent(*pos)}
+        reverse = {'u': 'd', 'd': 'u', 'l': 'r', 'r': 'l'}
         try:
             if sym == '+':  # change directions
-                assert len(adjs) == 2 and self.REVERSE[dir] in adjs
-                del adjs[self.REVERSE[dir]]  # eliminate where we came from
+                assert len(adjs) == 2 and reverse[dir] in adjs
+                del adjs[reverse[dir]]  # eliminate where we came from
                 return adjs.popitem()[1]
             else:  # keep going in same direction
                 return adjs[dir]
