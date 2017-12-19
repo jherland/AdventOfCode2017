@@ -6,8 +6,6 @@ class Diagram:
     def build(cls, lines):
         '''Return Diagram instance and starting point.'''
         lines = [line.rstrip() for line in lines]
-        height = len(lines)
-        width = max(len(line) for line in lines)
         d = {}  # map (y, x) to symbol at (y, x). (0, 0) is top left
         start = None  # starting point (dir_from, position, symbol)
         for i, line in enumerate(lines):
@@ -20,12 +18,10 @@ class Diagram:
                 if start is None:
                     assert i == 0 and c == '|'
                     start = 'd', (i, j), c
-        return cls(d, height, width), start
+        return cls(d), start
 
-    def __init__(self, d, height, width):
+    def __init__(self, d):
         self.d = d
-        self.height = height
-        self.width = width
 
     def adjacent(self, y, x):
         adjs = [
@@ -35,7 +31,7 @@ class Diagram:
             ('r', (y, x + 1)),
         ]
         for dir, (y, x) in adjs:
-            if 0 <= y < self.height and 0 <= x < self.width and (y, x) in self.d:
+            if (y, x) in self.d:
                 yield dir, (y, x), self.d[(y, x)]
 
     def step(self, cur):
