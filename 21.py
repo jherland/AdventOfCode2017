@@ -15,6 +15,9 @@ class Picture:
     def __hash__(self):
         return hash(self.lines)
 
+    def __str__(self, indent='    '):
+        return ''.join('{}{}\n'.format(indent, line) for line in self.lines)
+
     def __eq__(self, other):
         return self.lines == other.lines
 
@@ -26,6 +29,8 @@ class Picture:
         '''Split this picture into a stream of 2x2 or 3x3 atoms.'''
         assert self.size % 2 == 0 or self.size % 3 == 0
         AtomX = Atom2 if self.size % 2 == 0 else Atom3
+        print('Splitting {0}x{0} picture into {1} {2}x{2} atoms'.format(
+            self.size, (self.size // AtomX.Size) ** 2, AtomX.Size))
         yield from AtomX.extract(self)
 
     @classmethod
@@ -34,11 +39,13 @@ class Picture:
         pictures = list(pictures)
         unit_size = pictures[0].size
         assert all(pic.size == unit_size for pic in pictures)
+        print('Joining', len(pictures), 'pictures of size', unit_size)
         n = int(sqrt(len(pictures)))
         assert len(pictures) == n ** 2  # we have NxN pictures
         result = [''] * n * unit_size
         for i in range(0, n * unit_size, unit_size):
             for pic in pictures[:n]:
+                # print('Adding', pic, 'at index', i, 'into', result)
                 for j in range(unit_size):
                     result[i + j] += pic.lines[j]
             pictures = pictures[n:]
@@ -151,6 +158,7 @@ pic = Picture.parse('.#./..#/###')
 # part 1
 for _ in range(5):
     pic = pic.iterate(rulebook)
+    print(pic)
 print(pic.on())
 
 # part 2
