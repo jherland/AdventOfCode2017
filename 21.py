@@ -1,137 +1,82 @@
 from math import sqrt
+import numpy as np
 
 
-class Picture:
+class Square:
+    '''2D square of binary pixels.'''
+
     @classmethod
     def parse(cls, s):
-        '''Build Picture instance from string like '.#./..#/###'.'''
-        return cls(tuple(s.split('/')))
+        '''Build Square instance from string like '.#./..#/###'.'''
+        d = {'#': 1, '.': 0}
+        return cls(np.array([[d[c] for c in row] for row in s.split('/')]))
 
-    def __init__(self, lines):
-        self.lines = tuple(lines)
-        assert all(len(line) == len(self.lines) for line in self.lines)
-        self.size = len(self.lines)
+    def __init__(self, array):
+        # Any 2D square array is acceptable
+        assert len(array.shape) == 2 and array.shape[0] == array.shape[1]
+        self.a = array
+
+    @property
+    def size(self):
+        return self.a.shape[0]
 
     def __hash__(self):
-        return hash(self.lines)
+        return hash(self.a.tostring())
 
-    def __str__(self, indent='    '):
-        return ''.join('{}{}\n'.format(indent, line) for line in self.lines)
+    def __str__(self):
+        return str(self.a)
 
     def __eq__(self, other):
-        return self.lines == other.lines
+        return np.array_equal(self.a, other.a)
 
     def on(self):
-        '''Return number of '#' pixels in this picture.'''
-        return sum(c == '#' for line in self.lines for c in line)
-
-    def atoms(self):
-        '''Split this picture into a stream of 2x2 or 3x3 atoms.'''
-        assert self.size % 2 == 0 or self.size % 3 == 0
-        AtomX = Atom2 if self.size % 2 == 0 else Atom3
-        print('Splitting {0}x{0} picture into {1} {2}x{2} atoms'.format(
-            self.size, (self.size // AtomX.Size) ** 2, AtomX.Size))
-        yield from AtomX.extract(self)
-
-    @classmethod
-    def join(cls, pictures):
-        '''Join stream of NxN equally-sized pictures into a larger picture.'''
-        pictures = list(pictures)
-        unit_size = pictures[0].size
-        assert all(pic.size == unit_size for pic in pictures)
-        print('Joining', len(pictures), 'pictures of size', unit_size)
-        n = int(sqrt(len(pictures)))
-        assert len(pictures) == n ** 2  # we have NxN pictures
-        result = [''] * n * unit_size
-        for i in range(0, n * unit_size, unit_size):
-            for pic in pictures[:n]:
-                # print('Adding', pic, 'at index', i, 'into', result)
-                for j in range(unit_size):
-                    result[i + j] += pic.lines[j]
-            pictures = pictures[n:]
-        assert not pictures
-        return cls(result)
-
-    def iterate(self, rulebook):
-        '''Return the next iteration of self, enhanced with the given rules.'''
-        return Picture.join(atom.enhance(rulebook) for atom in self.atoms())
-
-
-class Atom(Picture):
-    Size = NotImplemented
-
-    def __init__(self, lines):
-        super().__init__(lines)
-        assert self.size == self.Size
-
-    def flip_vert(self):
-        return self.__class__(tuple(reversed(self.lines)))
-
-    def flip_horiz(self):
-        return self.__class__(tuple(line[::-1] for line in self.lines))
-
-    def rotate_cw(self):
-        raise NotImplementedError()
-
-    def rotations(self):
-        yield self
-        yield self.rotate_cw()
-        yield self.rotate_cw().rotate_cw()
-        yield self.rotate_cw().rotate_cw().rotate_cw()
-
-    def flips(self):
-        yield self
-        yield self.flip_horiz()
-        yield self.flip_vert()
-        yield self.flip_vert().flip_horiz()
+        '''Return number of '#' pixels in this square.'''
+        return self.a.sum()
 
     def permutations(self):
-        for rot in self.rotations():
-            yield from rot.flips()
+        for rot in range(4):
+            a = np.rot90(self.a, rot)
+            yield self.__class__(a)
+            yield self.__class__(np.flipud(a))
+            yield self.__class__(np.fliplr(a))
+            yield self.__class__(np.flipud(np.fliplr(a)))
 
     def enhance(self, rulebook):
         return rulebook[self]
 
+    def atoms(self):
+        '''Split this square into a stream of 2x2 or 3x3 squares.'''
+        assert self.size % 2 == 0 or self.size % 3 == 0
+        atom_size = 2 if self.size % 2 == 0 else 3
+        print('Splitting {0}x{0} square into {1} {2}x{2} squares'.format(
+            self.size, (self.size // atom_size) ** 2, atom_size))
 
-class Atom2(Atom):
-    Size = 2
-
-    @classmethod
-    def extract(cls, pic):
-        assert pic.size % cls.Size == 0
-        lines = pic.lines
-        while lines:
-            l1, l2, *lines = lines
-            while l1 or l2:
-                (a, b, *l1), (c, d, *l2) = l1, l2
-                yield cls((a + b, c + d))
-
-    def rotate_cw(self):
-        (a, b), (c, d) = self.lines
-        return self.__class__((c + a, d + b))
-
-
-class Atom3(Atom):
-    Size = 3
+        assert self.size % atom_size == 0
+        for row in np.split(self.a, self.size // atom_size, axis=0):
+            for col in np.split(row, self.size // atom_size, axis=1):
+                assert col.shape == (atom_size, atom_size)
+                yield self.__class__(col)
 
     @classmethod
-    def extract(cls, pic):
-        assert pic.size % cls.Size == 0
-        lines = pic.lines
-        while lines:
-            l1, l2, l3, *lines = lines
-            while l1 or l2 or l3:
-                (a, b, c, *l1), (d, e, f, *l2), (g, h, i, *l3) = l1, l2, l3
-                yield cls((a + b + c, d + e + f, g + h + i))
+    def join(cls, squares):
+        '''Join stream of NxN equally-sized squares into a larger square.'''
+        arrays = [sq.a for sq in squares]
+        ushape = arrays[0].shape
+        assert len(ushape) == 2 and ushape[0] == ushape[1]
+        assert all(arr.shape == ushape for arr in arrays)
+        print('Joining {} {}x{} squares'.format(len(arrays), *ushape))
+        n = int(sqrt(len(arrays)))
+        assert len(arrays) == n ** 2  # we have NxN arrays
+        return cls(np.block([arrays[i * n:(i + 1) * n] for i in range(n)]))
 
-    def rotate_cw(self):
-        (a, b, c), (d, e, f), (g, h, i) = self.lines
-        return self.__class__((g + d + a, h + e + b, i + f + c))
+    def iterate(self, rulebook):
+        '''Return the next iteration of self, enhanced with the given rules.'''
+        return Square.join(square.enhance(rulebook) for square in self.atoms())
 
 
 def parse_rule(line):
     assert ' => ' in line
-    before, after = (Picture.parse(s) for s in line.split(' => '))
+    before, after = (Square.parse(s) for s in line.split(' => '))
     assert before.size + 1 == after.size
     return before, after
 
@@ -140,17 +85,17 @@ with open('21.input') as f:
     rules = [parse_rule(line.rstrip()) for line in f]  # [(before, after)...]
 
 # Generate permutations of 'before' here, so square matching == dict lookup
-rulebook = {p: t for f, t in rules for p in (Atom2 if f.size == 2 else Atom3)(f.lines).permutations()}
+rulebook = {p: t for f, t in rules for p in f.permutations()}
 
-pic = Picture.parse('.#./..#/###')
+square = Square.parse('.#./..#/###')
 
 # part 1
 for _ in range(5):
-    pic = pic.iterate(rulebook)
-    print(pic)
-print(pic.on())
+    square = square.iterate(rulebook)
+    print(square)
+print(square.on())
 
 # part 2
 for _ in range(5, 18):
-    pic = pic.iterate(rulebook)
-print(pic.on())
+    square = square.iterate(rulebook)
+print(square.on())
