@@ -12,6 +12,9 @@ class Picture:
         assert all(len(line) == len(self.lines) for line in self.lines)
         self.size = len(self.lines)
 
+    def __hash__(self):
+        return hash(self.lines)
+
     def __eq__(self, other):
         return self.lines == other.lines
 
@@ -82,11 +85,8 @@ class Atom(Picture):
     def enhance(self, rulebook):
         key = self.size, self.on()
         assert key in rulebook, key
-        for perm in self.permutations():
-            for before, after in rulebook[key]:
-                if perm == before:
-                    return after
-        assert False, self
+        assert self in rulebook[key], rulebook[key]
+        return rulebook[key][self]
 
 
 class Atom2(Atom):
@@ -135,11 +135,16 @@ def parse_rule(line):
 with open('21.input') as f:
     rules = [parse_rule(line.rstrip()) for line in f]  # [(before, after)...]
 
-# Index rules by (before.size, before.on())
-rulebook = {}
+# Index rules by (before.size, before.on()).
+rulebook = {}  # (before.size, before.on()) -> {before.permutations() -> after}
 for before, after in rules:
+    assert before.size in {2, 3}
+    before = Atom2(before.lines) if before.size == 2 else Atom3(before.lines)
     key = before.size, before.on()
-    rulebook.setdefault(key, []).append((before, after))
+    match = rulebook.setdefault(key, {})
+    # Also generate all matching input permutations up front
+    for perm in before.permutations():
+        match[perm] = after
 
 pic = Picture.parse('.#./..#/###')
 
