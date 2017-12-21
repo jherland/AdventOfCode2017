@@ -42,7 +42,7 @@ class Picture:
         result = [''] * n * unit_size
         for i in range(0, n * unit_size, unit_size):
             for pic in pictures[:n]:
-                #print('Adding', pic, 'at index', i, 'into', result)
+                # print('Adding', pic, 'at index', i, 'into', result)
                 for j in range(unit_size):
                     result[i + j] += pic.lines[j]
             pictures = pictures[n:]
@@ -52,13 +52,6 @@ class Picture:
     def iterate(self, rulebook):
         '''Return the next iteration of self, enhanced with the given rules.'''
         return Picture.join(atom.enhance(rulebook) for atom in self.atoms())
-        patterns = []
-        for atom in split(self.lines):
-            assert len(atom) in {2, 3}
-            pattern = enhance(atom, rulebook)
-            print('Enhanced', atom, '->', pattern)
-            patterns.append(pattern)
-        return Picture(join(patterns))
 
 
 class Atom(Picture):
@@ -96,14 +89,14 @@ class Atom(Picture):
     def enhance(self, rulebook):
         key = self.size, self.on()
         assert key in rulebook, key
-        #print(self, 'must match one of these:')
-        #for before, after in rulebook[key]:
-            #print(before.on(), before, after, after.on())
+        # print(self, 'must match one of these:')
+        # for before, after in rulebook[key]:
+        #     print(before.on(), before, after, after.on())
         for perm in self.permutations():
             for before, after in rulebook[key]:
-            #print('Testing', perm, 'against', before)
+                # print('Testing', perm, 'against', before)
                 if perm == before:
-                    #print('Found', before, after)
+                    # print('Found', before, after)
                     return after
         assert False, self
 
@@ -154,28 +147,21 @@ def parse_rule(line):
 with open('21.input') as f:
     rules = [parse_rule(line.rstrip()) for line in f]  # [(before, after)...]
 
-#rules = [parse_rule(line) for line in [
-    #'../.# => ##./#../...',
-    #'.#./..#/### => #..#/..../..../#..#',
-#]]
-
 # Index rules by (before.size, before.on())
 rulebook = {}
 for before, after in rules:
     key = before.size, before.on()
     rulebook.setdefault(key, []).append((before, after))
 
-# part 1
 pic = Picture.parse('.#./..#/###')
-print(pic)
+
+# part 1
 for _ in range(5):
     pic = pic.iterate(rulebook)
     print(pic)
-    print(pic.on())
 print(pic.on())
 
 # part 2
-pic = Picture.parse('.#./..#/###')
-for _ in range(18):
+for _ in range(5, 18):
     pic = pic.iterate(rulebook)
 print(pic.on())
