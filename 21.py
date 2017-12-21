@@ -90,10 +90,7 @@ class Atom(Picture):
             yield from rot.flips()
 
     def enhance(self, rulebook):
-        key = self.size, self.on()
-        assert key in rulebook, key
-        assert self in rulebook[key], rulebook[key]
-        return rulebook[key][self]
+        return rulebook[self]
 
 
 class Atom2(Atom):
@@ -142,16 +139,8 @@ def parse_rule(line):
 with open('21.input') as f:
     rules = [parse_rule(line.rstrip()) for line in f]  # [(before, after)...]
 
-# Index rules by (before.size, before.on()).
-rulebook = {}  # (before.size, before.on()) -> {before.permutations() -> after}
-for before, after in rules:
-    assert before.size in {2, 3}
-    before = Atom2(before.lines) if before.size == 2 else Atom3(before.lines)
-    key = before.size, before.on()
-    match = rulebook.setdefault(key, {})
-    # Also generate all matching input permutations up front
-    for perm in before.permutations():
-        match[perm] = after
+# Generate permutations of 'before' here, so square matching == dict lookup
+rulebook = {p: t for f, t in rules for p in (Atom2 if f.size == 2 else Atom3)(f.lines).permutations()}
 
 pic = Picture.parse('.#./..#/###')
 
