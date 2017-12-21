@@ -10,9 +10,6 @@ class Coord:
         self.y = y
         self.z = z
 
-    def __str__(self):
-        return '<{0.x},{0.y},{0.z}>'.format(self)
-
     def __hash__(self):
         return hash((self.x, self.y, self.z))
 
@@ -40,9 +37,6 @@ class Particle:
         self.pos = pos
         self.vel = vel
         self.acc = acc
-
-    def __str__(self):
-        return 'p={0.pos}, v={0.vel}, a={0.acc}'.format(self)
 
     def tick(self):
         '''Return this particle in the next time unit.'''
