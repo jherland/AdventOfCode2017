@@ -3,58 +3,35 @@ def parse_components(f):
         a, b = line.rstrip().split('/')
         yield int(a), int(b)
 
-with open('24.input') as f:
-    components = list(parse_components(f))
 
-components2 = list(parse_components("""\
-0/2
-2/2
-2/3
-3/4
-3/5
-0/1
-10/1
-9/10\
-""".split('\n')))
-
-components.sort(key=lambda i: -sum(i))
-
-def build(chain, components):
-    if not components:  # No components left
-        yield chain
-        return
+def build(chain, comps):
     grown = False
-    for i, c in enumerate(components):
-        # Add c onto the chain, if possible.
+    for i, c in enumerate(comps):  # add c onto the chain, if possible.
         if c[0] == chain[-1]:
-            yield from build(
-                chain + [c[0], c[1]], components[:i] + components[i + 1:])
+            yield from build(chain + [c[0], c[1]], comps[:i] + comps[i + 1:])
             grown = True
         if c[1] == chain[-1]:
-            yield from build(
-                chain + [c[1], c[0]], components[:i] + components[i + 1:])
+            yield from build(chain + [c[1], c[0]], comps[:i] + comps[i + 1:])
             grown = True
-        if not grown:  # Nothing could be added, this chain is complete
-            yield chain
+    if not grown:  # nothing could be added, this chain is complete
+        yield chain
+
+
+with open('24.input') as f:
+    comps = sorted(parse_components(f), key=lambda t: -sum(t))
+
+max_strength = (0, [])  # (strength, chain)
+max_length = (0, 0, [])  # (length, strength, chain)
+for chain in build([0], comps):
+    strength = sum(chain), chain
+    length = len(chain), sum(chain), chain
+    if strength > max_strength:
+        max_strength = strength
+    if length > max_length:
+        max_length = length
 
 # part 1
-max_chain = []
-max_strength = 0
-max_length = 0
-try:
-    for chain in build([0], components):
-        length = len(chain)
-        strength = sum(chain)
-        if length > max_length:
-            max_chain = chain
-            max_length = length
-            max_strength = strength
-            print(max_length, max_strength, max_chain)
-        elif length == max_length and strength > max_strength:
-            max_chain = chain
-            max_strength = strength
-            print(max_length, max_strength, max_chain)
-except:
-    pass
-print()
-print(max_length, max_strength, max_chain)
+print(max_strength[0])
+
+# part 2
+print(max_length[1])
